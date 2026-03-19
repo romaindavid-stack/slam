@@ -1,0 +1,6 @@
+[submodule "src/drivers/Livox-SDK2"]
+	path = src/drivers/Livox-SDK2
+	url = https://github.com/Livox-SDK/Livox-SDK2.git
+[submodule "src/slam/FAST_LIO"]
+	path = src/slam/FAST_LIO
+	url = https://github.com/Ericsii/FAST_LIO_ROS2.git

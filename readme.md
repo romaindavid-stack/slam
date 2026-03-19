@@ -20,17 +20,17 @@ Change the address to 192.168.1.50 and netmask to 255.255.255.0
 
 ### folder tree
 
-slam/
-├── src/
-│   ├── drivers/
-│   │   └── Livox-SDK2/          # Submodule (Code)
-│   ├── slam/
-│   │   └── FAST_LIO/            # Submodule (Code)
-│   └── my_configs/              # YOUR custom ROS 2 Package
-│       ├── config/
-│       │   ├── custom_mid360.yaml
-│       │   └── fast_lio_params.yaml
-│       └── launch/
-│           └── fast_lio_deploy.launch.py
-├── setup.sh                     # The "Magic" script
-└── README.md
+slam/  
+├── src/  
+│   ├── drivers/  
+│   │   └── Livox-SDK2/          # Submodule (Code)  
+│   ├── slam/  
+│   │   └── FAST_LIO/            # Submodule (Code)  
+│   └── my_configs/              # YOUR custom ROS 2 Package  
+│       ├── config/  
+│       │   ├── custom_mid360.yaml  
+│       │   └── fast_lio_params.yaml  
+│       └── launch/  
+│           └── fast_lio_deploy.launch.py  
+├── setup.sh                     # The "Magic" script  
+└── README.md  
