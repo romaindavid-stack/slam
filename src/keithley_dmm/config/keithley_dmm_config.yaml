@@ -1,0 +1,12 @@
+keithley_dmm_node:
+  ros__parameters:
+    # Network connection settings
+    ip_address: "192.168.1.51"  # Update this for your device's IP
+    port: 5025                   # Standard SCPI port
+    
+    # Measurement configuration
+    measurement_type: "voltage"  # voltage, current, resistance, temperature
+    measurement_range: "auto"    # auto or specific range (e.g., "10.0" for 10V range)
+    sample_rate: 20.0            # Sampling rate in Hz
+    nplc: 1.0                   # Number of power line cycles (0.01 to 10)
+    high_speed_mode: true       # Enable high speed sampling

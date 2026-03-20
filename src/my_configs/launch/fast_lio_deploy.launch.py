@@ -33,6 +33,16 @@ def generate_launch_description():
         launch_arguments={'config_file': fast_lio_config}.items()
     )
 
+    # Path to Keithley Launch
+    keithley_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_directory('keithley_dmm'), 'launch', 'keithley_yaml_launch.py')
+        )
+    )
+
+    # Then add 'keithley_launch' to your LaunchDescription return list
+
+
     # 5. GPS Node (U-Blox)
     ublox_node = Node(
         package='ublox_gps',
@@ -53,5 +63,6 @@ def generate_launch_description():
         livox_launch,
         fast_lio_launch,
         ublox_node,
-        ntrip_node
+        ntrip_node,
+        keithley_launch,
     ])
