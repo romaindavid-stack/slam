@@ -21,7 +21,7 @@ def generate_launch_description():
     # 3. Include the Livox Driver Launch with its config
     livox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(livox_driver_dir, 'launch', 'msg_MID360_launch.py')
+            os.path.join(livox_driver_dir, 'launch_ROS2', 'msg_MID360_launch.py')
         ),
         # Pass the driver config here
         launch_arguments={'user_config_path': livox_driver_config}.items()

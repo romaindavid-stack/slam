@@ -1,39 +1,26 @@
 #!/bin/bash
-# 1. Get the code
+# (Run as ./setup.sh)
+
+# --- 1. Submodule Sync ---
+echo "--- Syncing Submodules ---"
 git submodule update --init --recursive
 
-# --- 2. The Livox Driver "Surgery" ---
-DRIVER_PATH="src/drivers/livox_ros_driver2"
-if [ -d "$DRIVER_PATH" ]; then
-    echo "🔧 Preparing Livox Driver for ROS 2..."
-    cp $DRIVER_PATH/package_ROS2.xml $DRIVER_PATH/package.xml
-fi
+# --- 2. Build & Install SDK2 (System-wide) ---
+echo "--- Building Livox-SDK2 ---"
+cd src/Livox-SDK2
+mkdir -p build && cd build
+cmake .. && make -j$(nproc)
+sudo make install
+cd ../../../  # Back to ~/slam
 
-# --- 3. Environment Setup ---
-# This helps the compiler find the SDK headers
-export LIVOX_SDK2_PATH=$(pwd)/src/drivers/Livox-SDK2
+# --- 3. Build Driver ---
 
-# 4. Install system dependencies
-rosdep update
-rosdep install --from-paths src --ignore-src -r -y --skip-keys "ament_python"
+echo "--- 3. Building livox_ros_driver2 ---"
+cd src/livox_ros_driver2
+source /opt/ros/humble/setup.bash
+./build.sh humble
+cd ../../
 
-# 5. Build Everything (The Sequential Way)
-# --- 1. Build the SDK (The Foundation) ---
-echo "--- Building SDK ---"
-colcon build --symlink-install --packages-select livox_sdk2
-
-# --- 2. Build ONLY the Message Headers (The Fix) ---
-echo "--- Generating Livox Interfaces ---"
-# This forces CMake to run the message generation target first
-colcon build --symlink-install --packages-select livox_ros_driver2 \
-    --cmake-args -DROS_EDITION=ROS2 -DLIVOX_SDK2_PATH=$LIVOX_SDK2_PATH \
-    --cmake-target livox_ros_driver2__rosidl_typesupport_cpp
-
-# --- 3. Build Everything Else (The Completion) ---
-echo "--- Finalizing Build ---"
+echo "--- 4. Building Fast-LIO & Configs ---"
 source install/setup.bash
-# Now we build normally; the 'NOTFOUND' will disappear because the folder exists now
-colcon build --symlink-install --allow-overriding livox_ros_driver2 \
-    --cmake-args -DROS_EDITION=ROS2 -DLIVOX_SDK2_PATH=$LIVOX_SDK2_PATHDROS_EDITION=ROS2 -DLIVOX_SDK2_PATH=$LIVOX_SDK2_PATH
-
-source install/setup.bash
+colcon build --symlink-install --packages-select FAST_LIO my_configs
