@@ -32,18 +32,17 @@ ros2 launch my_configs fast_lio_deploy.launch.py
 ### folder tree
 ```
 slam/  
-├── src/  
-│   ├── drivers/  
-│   │   └── Livox-SDK2/          # Submodule (Code)  
-│   ├── slam/  
-│   │   └── FAST_LIO/            # Submodule (Code)  
-│   └── my_configs/              # YOUR custom ROS 2 Package  
-|       ...
-│       ├── config/  
-│       │   ├── mid360.yaml  
-│       │   └── MID360_config.yaml  
-│       └── launch/  
-│           └── fast_lio_deploy.launch.py  
+├── build
+│   ├── ...
+├── install
+│   ├── ...
+├── log
+│   ├── ...
+└── src
+    ├── FAST_LIO
+    ├── livox_ros_driver2
+    ├── Livox-SDK2
+    └── my_configs
 ├── setup.sh                     # The "Magic" script  
 └── README.md  
 ```
