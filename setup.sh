@@ -58,7 +58,6 @@ colcon build --packages-select ublox_msgs ublox_serialization ublox_gps
 # Now build the rest of the workspace normally.
 # This ensures Fast-LIO and your custom configs are linked correctly.
 echo "Finishing full workspace build..."
-colcon build --symlink-install  --packages-ignore ublox_msgs ublox_serialization ublox_gps --cmake-args -DROS_EDITION=ROS2
-
+colcon build --symlink-install --packages-select FAST_LIO my_configs
 
 source install/setup.bash
