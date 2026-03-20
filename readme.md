@@ -1,10 +1,10 @@
 # SLAM
 
-Complete folder to run slam in one click.
+Complete folder to run the lidar (livox), the gps and slam in one click.
 
 ## Setup
 
-### ethernet port config
+### ethernet port config for livox lidar
 We need to set a custom setting on the laptop ethernet port so it can communicate with the LiDAR.  
 Settings -> Network -> PCI Ethernet -> Settings (cog wheel) -> IPV4 -> Manual (IPV4 method) -> Addresses:  
 Change the address to 192.168.1.50 and netmask to 255.255.255.0  
@@ -42,7 +42,9 @@ slam/
     ├── FAST_LIO
     ├── livox_ros_driver2
     ├── Livox-SDK2
-    └── my_configs
+    ├── my_configs
+    ├── ntrip_client
+    └── ublox
 ├── setup.sh                     # The "Magic" script  
 └── README.md  
 ```

@@ -1,0 +1,32 @@
+# Configuration Settings for ArduSimple ZED-F9P (Rover Mode with Swipos)
+ublox_gps_node:
+  ros__parameters:
+    debug: 0                    
+    device: /tty_Ardusimple
+    frame_id: gps
+    
+    # Korrekte UART1 Konfiguration für ArduSimple
+    uart1:
+      baudrate: 115200
+      in: 0
+      out: 0
+      
+    # Alle Satellitensysteme explizit einschalten (Multi-GNSS)
+    gnss:
+      gps: true
+      glonass: true
+      galileo: true
+      beidou: true
+      
+    # WICHTIGSTE EINSTELLUNG: TMODE3 auf 0 (Rover Modus, NICHT Basisstation)
+    tmode3: 0                   
+    
+    inf:
+      all: true                   
+    
+    publish:
+      all: true
+      aid:
+        hui: false
+      nav:
+        posecef: false
