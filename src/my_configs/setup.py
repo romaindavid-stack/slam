@@ -17,10 +17,7 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.py'))),
         # Same for config
         (os.path.join('share', package_name, 'config'), glob(os.path.join('config', '*'))),
-        # # This grabs everything in your launch folder
-        # (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
-        # # This grabs everything in your config folder
-        # (os.path.join('share', package_name, 'config'), glob('config/*')),
+
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -28,9 +25,9 @@ setup(
     maintainer_email='romain.david@talpainspection.ch',
     description='Custom SLAM configurations and launch wrappers',
     license='TODO: License declaration',
-    #tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'measurement_geotagger = my_configs.measurement_geotagger:main'
         ],
     },
 )
