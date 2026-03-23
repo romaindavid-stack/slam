@@ -1,11 +1,39 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, ExecuteProcess, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.conditions import IfCondition
+import time
 from launch_ros.actions import Node
 
 def generate_launch_description():
+    # 0. Add a toggle so you can choose when to record
+    # Usage: ros2 launch my_configs fast_lio_deploy.launch.py record:=true
+    record_bag_arg = DeclareLaunchArgument(
+        'record',
+        default_value='false',
+        description='Set to "true" to start recording a ROS bag.'
+    )
+    # Define the recording command
+    # We use a timestamp in the filename to avoid overwriting old data
+    bag_name = "bags/slam_run_" + time.strftime("%Y_%m_%d-%H_%M_%S")
+
+    bag_recorder = ExecuteProcess(
+        condition=IfCondition(LaunchConfiguration('record')),
+        cmd=[
+            'ros2', 'bag', 'record',
+            '-o', bag_name,
+            '/ublox_gps_node/fix',
+            '/odometry',
+            '/livox/lidar',
+            '/livox/imu',
+            '/keithley/measurement'
+        ],
+        output='screen'
+    )
+
     # 1. Paths to the OFFICIAL launch files
     my_configs_dir = get_package_share_directory('my_configs')
     fast_lio_dir = get_package_share_directory('fast_lio')
@@ -70,6 +98,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        record_bag_arg,
+        bag_recorder,
         livox_driver_node,
         fast_lio_launch,
         ublox_node,
