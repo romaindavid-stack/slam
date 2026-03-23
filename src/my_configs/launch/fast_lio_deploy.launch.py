@@ -11,6 +11,9 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # 0. Add a toggle so you can choose when to record
     # Usage: ros2 launch my_configs fast_lio_deploy.launch.py record:=true
+    # Ensure the 'bags' directory exists so the recorder doesn't fail
+    if not os.path.exists('bags'):
+        os.makedirs('bags')
     record_bag_arg = DeclareLaunchArgument(
         'record',
         default_value='false',
@@ -30,6 +33,7 @@ def generate_launch_description():
             '/livox/lidar',
             '/livox/imu',
             '/keithley/measurement'
+            '/keithley/geotagged_marker'
         ],
         output='screen'
     )
@@ -97,6 +101,13 @@ def generate_launch_description():
         )
     )
 
+    geotagger_node = Node(
+        package='my_configs',
+        executable='measurement_geotagger',
+        name='measurement_geotagger',
+        output='screen'
+    )
+
     return LaunchDescription([
         record_bag_arg,
         bag_recorder,
@@ -105,4 +116,5 @@ def generate_launch_description():
         ublox_node,
         ntrip_launch,
         keithley_launch,
+        geotagger_node,
     ])

@@ -2,7 +2,7 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64
-from geometry_msgs.msg import PoseStamped
+from visualization_msgs.msg import Marker
 from collections import deque
 import numpy as np
 import math
@@ -10,6 +10,8 @@ import math
 class MeasurementGeotagger(Node):
     def __init__(self):
         super().__init__('measurement_geotagger')
+
+        print("\n\n\nmeasurement geotagger well and alive\n\n\n")
 
         # --- CONFIGURATION ---
         self.max_odom_buffer_size = 200
@@ -21,11 +23,17 @@ class MeasurementGeotagger(Node):
         # Example: Sensor is 0.5m behind and 0.2m below the LiDAR center
         self.lever_arm = np.array([-0.5, 0.0, -0.2])
 
+	
+        # COLOR MAPPING CONFIG (Traffic Light Gradient)
+        self.min_volt = 0.0   # Green threshold (Safe/Low)
+        self.max_volt = 12.0  # Red threshold (Danger/High)
+
         # --- BUFFERS ---
         # We store odom as a list of dictionaries for easy time-searching
         self.odom_buffer = deque(maxlen=self.max_odom_buffer_size)
         # Store measurements that are waiting for a "future" odom frame to arrive
         self.measurements_waiting_room = deque()
+        self.marker_id = 0
 
         # --- ROS INTERFACE ---
         self.odom_sub = self.create_subscription(
@@ -40,13 +48,9 @@ class MeasurementGeotagger(Node):
             self.measurement_callback, 
             10
         )
-        self.pose_pub = self.create_publisher(
-            PoseStamped, 
-            '/keithley/geotagged_pose', 
-            10
-        )
+        self.marker_pub = self.create_publisher(Marker, '/keithley/geotagged_marker', 10)
 
-        self.get_logger().info("Geotagger Node Started.")
+        self.get_logger().info(f"Geotagger Started. Gradient: Green -> Yellow -> Orange -> Red ({self.min_volt}V to {self.max_volt}V)")
         self.get_logger().info(f"Lever arm offset configured: {self.lever_arm}")
 
     def get_timestamp(self, msg_header):
@@ -114,6 +118,36 @@ class MeasurementGeotagger(Node):
                 # in our odom buffer we can't bridge.
                 break
 
+	
+    def get_color(self, value):
+        """Maps a value to a smooth Green -> Yellow -> Orange -> Red gradient."""
+        # Normalize value between 0 and 1
+        norm = (value - self.min_volt) / (self.max_volt - self.min_volt)
+        norm = max(0.0, min(1.0, norm)) # Clamp
+        # Gradient Logic:
+        # 0.0 -> Green (0, 1, 0)
+        # 0.33 -> Yellow (1, 1, 0)
+        # 0.66 -> Orange (1, 0.5, 0)
+        # 1.0 -> Red (1, 0, 0)
+        
+        if norm < 0.33:
+            # Green to Yellow: Increase Red
+            r = norm / 0.33
+            g = 1.0
+            b = 0.0
+        elif norm < 0.66:
+            # Yellow to Orange: Decrease Green to 0.5
+            r = 1.0
+            g = 1.0 - 0.5 * ((norm - 0.33) / 0.33)
+            b = 0.0
+        else:
+            # Orange to Red: Decrease Green to 0.0
+            r = 1.0
+            g = 0.5 * (1.0 - (norm - 0.66) / 0.34)
+            b = 0.0
+            
+        return r, g, b
+
     def interpolate_and_publish(self, meas, prev, next_):
         dt = next_['time'] - prev['time']
         
@@ -128,16 +162,11 @@ class MeasurementGeotagger(Node):
         # Interpolate Position
         interp_pos = prev['pos'] + alpha * (next_['pos'] - prev['pos'])
         
-        # Interpolate Rotation (nlerp)
-        q1 = prev['quat']
-        q2 = next_['quat']
+        # Interpolate Rotation
+        q1 = [prev['quat'].x, prev['quat'].y, prev['quat'].z, prev['quat'].w]
+        q2 = [next['quat'].x, next['quat'].y, next['quat'].z, next['quat'].w]
         
-        interp_q = [
-            q1.x + alpha * (q2.x - q1.x),
-            q1.y + alpha * (q2.y - q1.y),
-            q1.z + alpha * (q2.z - q1.z),
-            q1.w + alpha * (q2.w - q1.w)
-        ]
+        interp_q = [q1[i] + alpha * (q2[i] - q1[i]) for i in range(4)]
         # Re-normalize
         norm = math.sqrt(sum(i*i for i in interp_q))
         interp_q = [i/norm for i in interp_q]
@@ -147,20 +176,34 @@ class MeasurementGeotagger(Node):
         final_pos = interp_pos + rotated_offset
 
         # --- PUBLISH ---
-        out_msg = PoseStamped()
-        out_msg.header.stamp = self.get_clock().now().to_msg()
-        out_msg.header.frame_id = prev['frame_id']
+        marker = Marker()
+        marker.header.frame_id = prev['frame_id']
+        marker.header.stamp = self.get_clock().now().to_msg()
+        marker.ns = "keithley_measurements"
+        marker.id = self.marker_id
+        self.marker_id += 1
         
-        out_msg.pose.position.x = final_pos[0]
-        out_msg.pose.position.y = final_pos[1]
-        out_msg.pose.position.z = final_pos[2]
+        marker.type = Marker.SPHERE
+        marker.action = Marker.ADD
         
-        out_msg.pose.orientation.x = interp_q[0]
-        out_msg.pose.orientation.y = interp_q[1]
-        out_msg.pose.orientation.z = interp_q[2]
-        out_msg.pose.orientation.w = interp_q[3]
-
-        self.pose_pub.publish(out_msg)
+        marker.pose.position.x = final_pos[0]
+        marker.pose.position.y = final_pos[1]
+        marker.pose.position.z = final_pos[2]
+        
+        marker.scale.x = 0.15 
+        marker.scale.y = 0.15
+        marker.scale.z = 0.15
+        
+        # Smooth Color Gradient
+        r, g, b = self.get_color(meas['value'])
+        marker.color.r = r
+        marker.color.g = g
+        marker.color.b = b
+        marker.color.a = 1.0 
+            
+        marker.text = f"{meas['value']:.2f}V"
+        
+        self.marker_pub.publish(marker)
 
     def rotate_vector(self, v, q):
         """Rotates vector v by quaternion q: v' = v + 2 * q_vec x (q_vec x v + q_w * v)"""
@@ -180,7 +223,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
