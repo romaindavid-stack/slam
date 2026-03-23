@@ -12,10 +12,15 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        # This grabs everything in your launch folder
-        (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
-        # This grabs everything in your config folder
-        (os.path.join('share', package_name, 'config'), glob('config/*')),
+
+        # This ensures everything in launch/*.py goes into the /share/package/launch folder
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.py'))),
+        # Same for config
+        (os.path.join('share', package_name, 'config'), glob(os.path.join('config', '*'))),
+        # # This grabs everything in your launch folder
+        # (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+        # # This grabs everything in your config folder
+        # (os.path.join('share', package_name, 'config'), glob('config/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

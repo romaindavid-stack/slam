@@ -79,7 +79,10 @@ echo "********************************************************"
 echo "🎉 SUCCESS: All packages (including Keithley DMM) built!"
 echo "********************************************************"
 echo "To start the system, run:"
+
+echo "if the project is not sourced:"
 echo "source install/setup.bash"
+echo "then"
 echo "ros2 launch my_configs fast_lio_deploy.launch.py"
 echo "********************************************************"
 

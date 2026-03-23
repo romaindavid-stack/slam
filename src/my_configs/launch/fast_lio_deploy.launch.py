@@ -54,16 +54,8 @@ def generate_launch_description():
     # NTRIP Client (Using its own internal defaults)
     ntrip_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('ntrip_client'), 'launch', 'ntrip_client_launch.py')
+            os.path.join(get_package_share_directory('my_configs'), 'launch', 'ntrip_client_launch.py')
         )
-    )
-
-    # 5. GPS Node (U-Blox)
-    ublox_node = Node(
-        package='ublox_gps',
-        executable='ublox_gps_node',
-        output='screen',
-        parameters=[ublox_gps_config]
     )
 
     return LaunchDescription([
