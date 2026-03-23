@@ -2,7 +2,7 @@
 ublox_gps_node:
   ros__parameters:
     debug: 0                    
-    device: /tty_Ardusimple
+    device: /dev/tty_Ardusimple
     frame_id: gps
     
     # Korrekte UART1 Konfiguration für ArduSimple
