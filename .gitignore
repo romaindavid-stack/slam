@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 *.pdf
 *.bag
+
+# keep the bags folder, but not the bags inside
+bags/*
+!bags/.gitkeep

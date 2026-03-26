@@ -1,3 +1,5 @@
+from typing import Literal
+
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
@@ -6,27 +8,38 @@ from visualization_msgs.msg import Marker
 from collections import deque
 import numpy as np
 import math
+from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Slerp
+
 
 class MeasurementGeotagger(Node):
     def __init__(self):
         super().__init__('measurement_geotagger')
 
-        print("\n\n\nmeasurement geotagger well and alive\n\n\n")
+        self.debugging = False  # False  # True
+        self.print("\n\n\nmeasurement geotagger well and alive\n\n\n")
+
+        # --- DECLARE PARAMETERS (With Defaults) ---
+        self.declare_parameter('filter_start_sec', 0.0)
+        self.declare_parameter('filter_end_sec', -1.0)
+        self.declare_parameter('measurement_step', 1)
+        self.declare_parameter('min_volt', -0.5)
+        self.declare_parameter('max_volt', 0.5)
+        self.declare_parameter('lever_arm', [-0.5, 0.0, -0.2])
+        # --- LOAD PARAMETERS ---
+        self.start_window = self.get_parameter('filter_start_sec').value
+        self.end_window = self.get_parameter('filter_end_sec').value
+        self.step = self.get_parameter('measurement_step').value
+        self.min_volt = self.get_parameter('min_volt').value
+        self.max_volt = self.get_parameter('max_volt').value
 
         # --- CONFIGURATION ---
         self.max_odom_buffer_size = 200
         self.max_interpolation_gap = 0.5 # Max seconds between odom frames to allow interpolation
         
         # LEVER ARM OFFSET (in meters)
-        # Coordinates in the Robot/Odom frame:
         # x: forward/backward, y: left/right, z: up/down
-        # Example: Sensor is 0.5m behind and 0.2m below the LiDAR center
-        self.lever_arm = np.array([-0.5, 0.0, -0.2])
-
-	
-        # COLOR MAPPING CONFIG (Traffic Light Gradient)
-        self.min_volt = 0.0   # Green threshold (Safe/Low)
-        self.max_volt = 12.0  # Red threshold (Danger/High)
+        self.lever_arm = np.array([-0.0, 0.14, 0.85])
 
         # --- BUFFERS ---
         # We store odom as a list of dictionaries for easy time-searching
@@ -34,11 +47,14 @@ class MeasurementGeotagger(Node):
         # Store measurements that are waiting for a "future" odom frame to arrive
         self.measurements_waiting_room = deque()
         self.marker_id = 0
+        self.first_msg_time = None
+        self.meas_count = 0
+
 
         # --- ROS INTERFACE ---
         self.odom_sub = self.create_subscription(
             Odometry, 
-            '/odometry', 
+            '/Odometry', 
             self.odom_callback, 
             10
         )
@@ -50,8 +66,12 @@ class MeasurementGeotagger(Node):
         )
         self.marker_pub = self.create_publisher(Marker, '/keithley/geotagged_marker', 10)
 
-        self.get_logger().info(f"Geotagger Started. Gradient: Green -> Yellow -> Orange -> Red ({self.min_volt}V to {self.max_volt}V)")
-        self.get_logger().info(f"Lever arm offset configured: {self.lever_arm}")
+        self.print(f"Geotagger Started. Gradient: Green -> Yellow -> Orange -> Red ({self.min_volt}V to {self.max_volt}V)")
+        self.print(f"Lever arm offset configured: {self.lever_arm}")
+    
+    def print(self, msg):
+        if self.debugging:
+            self.get_logger().info(str(msg))
 
     def get_timestamp(self, msg_header):
         return msg_header.stamp.sec + msg_header.stamp.nanosec * 1e-9
@@ -59,14 +79,31 @@ class MeasurementGeotagger(Node):
     def measurement_callback(self, msg):
         """Called when Keithley publishes a value."""
         # Use the ROS clock time of receipt
-        t_meas = self.get_clock().now().nanoseconds * 1e-9
-        self.measurements_waiting_room.append({'time': t_meas, 'value': msg.data})
+        self.print("received measurement")
+        t_now = self.get_clock().now().nanoseconds * 1e-9
+        # 2. Track mission start time
+        if self.first_msg_time is None:
+            self.first_msg_time = t_now
+            return
+        elapsed = t_now - self.first_msg_time
+        # 3. Apply Time Filter
+        if elapsed < self.start_window or (elapsed > self.end_window and self.end_window != -1):  # -1: no end time
+            return
+        # 4. Apply Downsampling (Measurement Step)
+        self.meas_count += 1
+        if self.meas_count % self.step != 0:
+            return
+
+        self.measurements_waiting_room.append({'time': t_now, 'value': msg.data})
+        self.print(msg.data)
+
         
         # Check if we can process this immediately
         self.process_queue()
 
     def odom_callback(self, msg):
         """Called when Odometry (from Fast-LIO) arrives."""
+        self.print("received odom")
         t_odom = self.get_timestamp(msg.header)
         
         # Store minimal data needed for interpolation
@@ -124,6 +161,7 @@ class MeasurementGeotagger(Node):
         # Normalize value between 0 and 1
         norm = (value - self.min_volt) / (self.max_volt - self.min_volt)
         norm = max(0.0, min(1.0, norm)) # Clamp
+        norm = 1-norm  # small is bad
         # Gradient Logic:
         # 0.0 -> Green (0, 1, 0)
         # 0.33 -> Yellow (1, 1, 0)
@@ -148,8 +186,8 @@ class MeasurementGeotagger(Node):
             
         return r, g, b
 
-    def interpolate_and_publish(self, meas, prev, next_):
-        dt = next_['time'] - prev['time']
+    def interpolate_and_publish(self, meas, previous_odometry, next_odometry):
+        dt = next_odometry['time'] - previous_odometry['time']
         
         # Sanity check for data gaps
         if dt > self.max_interpolation_gap or dt <= 0:
@@ -157,19 +195,36 @@ class MeasurementGeotagger(Node):
             return
 
         # Linear interpolation factor (0.0 to 1.0)
-        alpha = (meas['time'] - prev['time']) / dt
+        alpha = (meas['time'] - previous_odometry['time']) / dt
         
         # Interpolate Position
-        interp_pos = prev['pos'] + alpha * (next_['pos'] - prev['pos'])
+        interp_pos = previous_odometry['pos'] + alpha * (next_odometry['pos'] - previous_odometry['pos'])
         
-        # Interpolate Rotation
-        q1 = [prev['quat'].x, prev['quat'].y, prev['quat'].z, prev['quat'].w]
-        q2 = [next['quat'].x, next['quat'].y, next['quat'].z, next['quat'].w]
+        # # Interpolate Rotation
+        rotation_interpolation: Literal["slerp", "nlerp"] = "slerp"
+        if rotation_interpolation == "nlerp":
+            
+            q1 = [previous_odometry['quat'].x, previous_odometry['quat'].y, previous_odometry['quat'].z, previous_odometry['quat'].w]
+            q2 = [next_odometry['quat'].x, next_odometry['quat'].y, next_odometry['quat'].z, next_odometry['quat'].w]
         
-        interp_q = [q1[i] + alpha * (q2[i] - q1[i]) for i in range(4)]
-        # Re-normalize
-        norm = math.sqrt(sum(i*i for i in interp_q))
-        interp_q = [i/norm for i in interp_q]
+            interp_q = [q1[i] + alpha * (q2[i] - q1[i]) for i in range(4)]
+
+        elif rotation_interpolation == "slerp":
+            # 1. Convert ROS quaternions to lists [x, y, z, w]
+            q1_raw = [previous_odometry['quat'].x, previous_odometry['quat'].y, previous_odometry['quat'].z, previous_odometry['quat'].w]
+            q2_raw = [next_odometry['quat'].x, next_odometry['quat'].y, next_odometry['quat'].z, next_odometry['quat'].w]
+
+            # 2. Create Scipy Rotation objects
+            times = [previous_odometry['time'], next_odometry['time']]
+            key_rots = R.from_quat([q1_raw, q2_raw])
+
+            # 3. Perform SLERP
+            slerp = Slerp(times, key_rots)
+            interp_rot_obj = slerp([meas['time']]) # Interpolate at the measurement time
+            interp_q = interp_rot_obj.as_quat()[0] # Get back [x, y, z, w]
+            # Re-normalize
+            norm = math.sqrt(sum(i*i for i in interp_q))
+            interp_q = [i/norm for i in interp_q]
 
         # --- ROTATING THE LEVER ARM ---
         rotated_offset = self.rotate_vector(self.lever_arm, interp_q)
@@ -177,7 +232,7 @@ class MeasurementGeotagger(Node):
 
         # --- PUBLISH ---
         marker = Marker()
-        marker.header.frame_id = prev['frame_id']
+        marker.header.frame_id = previous_odometry['frame_id']
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.ns = "keithley_measurements"
         marker.id = self.marker_id
@@ -204,6 +259,7 @@ class MeasurementGeotagger(Node):
         marker.text = f"{meas['value']:.2f}V"
         
         self.marker_pub.publish(marker)
+        self.print("published")
 
     def rotate_vector(self, v, q):
         """Rotates vector v by quaternion q: v' = v + 2 * q_vec x (q_vec x v + q_w * v)"""

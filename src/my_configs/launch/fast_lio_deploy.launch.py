@@ -44,7 +44,8 @@ def generate_launch_description():
     my_configs_dir = get_package_share_directory('my_configs')
     fast_lio_dir = get_package_share_directory('fast_lio')
     fast_lio_config = os.path.join(my_configs_dir, 'config', 'mid360.yaml')
-
+    rviz_config_dir = os.path.join(get_package_share_directory('my_configs'), 'rviz', 'geotagger.rviz')
+    geotagger_config = os.path.join(get_package_share_directory('my_configs'), 'config', 'geotagger.yaml')
     # --- 3. HARDWARE NODES (Muted during playback) ---
 
     livox_driver_node = Node(
@@ -90,7 +91,8 @@ def generate_launch_description():
         # Pass use_sim_time to the included launch file
         launch_arguments={
             'config_file': fast_lio_config,
-            'use_sim_time': is_playback
+            'use_sim_time': is_playback,
+            "rviz":"false",
         }.items()
     )
 
@@ -99,7 +101,17 @@ def generate_launch_description():
         executable='measurement_geotagger',
         name='measurement_geotagger',
         output='screen',
-        parameters=[use_sim_time_param] # Critical for sync during playback
+        parameters=[geotagger_config, use_sim_time_param] # Critical for sync during playback
+    )
+
+
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        arguments=['-d', rviz_config_dir],
+        parameters=[{'use_sim_time': LaunchConfiguration('playback')}],
+        output='screen'
     )
 
     return LaunchDescription([
@@ -113,5 +125,6 @@ def generate_launch_description():
         keithley_launch,
         ntrip_launch,
         fast_lio_launch,
-        geotagger_node
+        geotagger_node,
+        rviz_node,
     ])

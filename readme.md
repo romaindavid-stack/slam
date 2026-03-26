@@ -12,7 +12,8 @@ Change the address to 192.168.1.50 and netmask to 255.255.255.0
 ### install
 
 ```bash
-source setup.sh
+./setup.sh
+source install/setup.bash
 ```
 
 To test succesful, no fatal errors should happen, and the following command should return a path:
@@ -25,6 +26,7 @@ You can launch either with or without recording in a ros2bag. If you record, alw
 ```bash
 ros2 launch my_configs fast_lio_deploy.launch.py
 ros2 launch my_configs fast_lio_deploy.launch.py record:=true
+ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/ros2_data/recordings/keith_livox1"
 ```
 
 
