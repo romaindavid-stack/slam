@@ -22,7 +22,11 @@ ros2 pkg prefix my_configs
 ```
 
 ### launch
-You can launch either with or without recording in a ros2bag. If you record, always launch from the slam directory.
+You can launch either with or without recording in a ros2bag. If you record, always launch from the slam directory.  
+Argumets:  
+- record (default `false`)
+- playback (default `false`)
+- bagfile (path to the bag if playback set to `true`)
 ```bash
 ros2 launch my_configs fast_lio_deploy.launch.py
 ros2 launch my_configs fast_lio_deploy.launch.py record:=true
