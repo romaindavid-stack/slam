@@ -20,8 +20,8 @@
     mapping:
       # Covariance: How much 'noise' or error we expect from the sensors. 
       # Higher values mean we trust the sensor LESS.
-      acc_cov: 0.1                 # Accelerometer noise
-      gyr_cov: 0.005               # Gyroscope noise
+      acc_cov: 0.5                 # Accelerometer noise
+      gyr_cov: 0.5               # Gyroscope noise
       b_acc_cov: 0.0001            # Bias noise (drift over time)
       b_gyr_cov: 0.0001
       # Sensor Specs
@@ -37,7 +37,7 @@
                      0.0, 0.0, 1.0 ]              
 
     # Resolution: The size of one '3D pixel' (voxel). 0.5m is good for indoor/outdoor balance.
-    filter_size_map: 0.5           
+    filter_size_map: 0.62           
 
     publish:
       # What should be sent to the visualizer (RViz)?
@@ -48,11 +48,16 @@
       scan_bodyframe_pub_en: true
 
     point_filter_num: 1
-    max_iteration: 5               # Number of math attempts to solve position per frame
-    filter_size_surf: 0.5
-    filter_size_map: 0.5
+    max_iteration: 10  # 5               # Number of math attempts to solve position per frame
+    filter_size_surf: 0.2  # 0.5
+    filter_size_map: 0.2  # 0.5
+
+    pcd_save_enable: true            # Save the 3D map as a .pcd file when finished
+    map_file_path: "/home/romain/slam/maps/"
+    interval: -1  
 
     pcd_save:
       # Map storage settings
-      pcd_save_en: true            # Save the 3D map as a .pcd file when finished
+      pcd_save_enable: true            # Save the 3D map as a .pcd file when finished
+      pcd_save_path: "/home/romain/slam/maps/"
       interval: -1                 # -1 means 'save everything into one file at the end'

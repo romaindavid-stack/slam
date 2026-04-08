@@ -1,7 +1,7 @@
 keithley_dmm_node:
   ros__parameters:
     # Network connection settings
-    ip_address: "192.168.1.51"  # Update this for your device's IP
+    ip_address: "192.168.1.51"  # 59 51"  # Update this for your device's IP
     port: 5025                   # Standard SCPI port
     
     # Measurement configuration

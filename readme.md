@@ -28,9 +28,12 @@ Arguments:
 - playback (default `false`)
 - bagfile (path to the bag if playback set to `true`)
 ```bash
+source install/setup.bash
+
 ros2 launch my_configs fast_lio_deploy.launch.py
 ros2 launch my_configs fast_lio_deploy.launch.py record:=true
 ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/ros2_data/recordings/keith_livox1"
+ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_07-14_23_44"
 ```
 
 

@@ -1,3 +1,4 @@
+import csv
 from typing import Literal
 
 import rclpy
@@ -15,8 +16,8 @@ from scipy.spatial.transform import Slerp
 class MeasurementGeotagger(Node):
     def __init__(self):
         super().__init__('measurement_geotagger')
-
         self.debugging = False  # False  # True
+
         self.print("\n\n\nmeasurement geotagger well and alive\n\n\n")
 
         # --- DECLARE PARAMETERS (With Defaults) ---
@@ -25,21 +26,24 @@ class MeasurementGeotagger(Node):
         self.declare_parameter('measurement_step', 1)
         self.declare_parameter('min_volt', -0.5)
         self.declare_parameter('max_volt', 0.5)
-        self.declare_parameter('lever_arm', [-0.5, 0.0, -0.2])
+        self.declare_parameter('save', False)
+        # LEVER ARM OFFSET (in meters)
+        self.declare_parameter('lever_arm', [0.14, 0.0, 0.85])
         # --- LOAD PARAMETERS ---
         self.start_window = self.get_parameter('filter_start_sec').value
         self.end_window = self.get_parameter('filter_end_sec').value
         self.step: int = self.get_parameter('measurement_step').value
         self.min_volt = self.get_parameter('min_volt').value
         self.max_volt = self.get_parameter('max_volt').value
+        self.lever_arm = np.array(self.get_parameter('lever_arm').value)
+        self.save = self.get_parameter('save').value
+
+
 
         # --- CONFIGURATION ---
         self.max_odom_buffer_size = 200
         self.max_interpolation_gap = 0.5 # Max seconds between odom frames to allow interpolation
         
-        # LEVER ARM OFFSET (in meters)
-        # x: forward/backward, y: left/right, z: up/down
-        self.lever_arm = np.array([-0.0, 0.14, 0.85])
 
         # --- BUFFERS ---
         # We store odom as a list of dictionaries for easy time-searching
@@ -68,10 +72,18 @@ class MeasurementGeotagger(Node):
 
         self.print(f"Geotagger Started. Gradient: Green -> Yellow -> Orange -> Red ({self.min_volt}V to {self.max_volt}V)")
         self.print(f"Lever arm offset configured: {self.lever_arm}")
-    
-    def print(self, msg):
+
+        # files
+        if self.save:
+            save_path = "maps/markers.csv"
+            with open(save_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(["X", "Y", "Z", "r", "g", "b"]) # Header
+        
+    def print(self, msg, prio=False):
         if self.debugging:
-            self.get_logger().info(str(msg))
+            if prio:
+                self.get_logger().info(str(msg))
 
     def get_timestamp(self, msg_header):
         return msg_header.stamp.sec + msg_header.stamp.nanosec * 1e-9
@@ -122,6 +134,7 @@ class MeasurementGeotagger(Node):
     def process_queue(self):
         """Attempts to match waiting measurements with odom flanks."""
         if len(self.odom_buffer) < 2 or not self.measurements_waiting_room:
+            self.print("missing odom or measurements")
             return
 
         while self.measurements_waiting_room:
@@ -259,7 +272,20 @@ class MeasurementGeotagger(Node):
         marker.text = f"{meas['value']:.2f}V"
         
         self.marker_pub.publish(marker)
-        self.print("published")
+
+        if self.save:
+            with open("markers.csv", "a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    marker.pose.position.x, 
+                    marker.pose.position.y, 
+                    marker.pose.position.z, 
+                    r,
+                    g,
+                    b,
+                ])
+
+        self.print("published", prio=True)
 
     def rotate_vector(self, v, q):
         """Rotates vector v by quaternion q: v' = v + 2 * q_vec x (q_vec x v + q_w * v)"""

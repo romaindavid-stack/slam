@@ -54,15 +54,20 @@ def generate_launch_description():
     bag_recorder = ExecuteProcess(
         condition=IfCondition(is_recording),
         cmd=['ros2', 'bag', 'record', '-o', bag_name,
-             '/ublox_gps_node/fix', '/odometry', '/livox/lidar',
+             '/ublox_gps_node/fix', '/Odometry', '/livox/lidar',
              '/livox/imu', '/keithley/measurement', '/keithley/geotagged_marker'],
         output='screen'
     )
     entities.append(bag_recorder)
-
     bag_player = ExecuteProcess(
-        # --clock is essential so nodes see the bag's time
-        cmd=['ros2', 'bag', 'play', LaunchConfiguration('bag_file'), '--clock'],
+        cmd=[[
+            'ros2 bag play ', 
+            LaunchConfiguration('bag_file'), 
+            ' --clock',
+            ' --remap /keithley/geotagged_marker:=/keithley/old_marker /Odometry:=/Odometry_old',
+        ]],
+        shell=True,
+        output='screen',
         condition=IfCondition(is_playback)
     )
     entities.append(bag_player)
