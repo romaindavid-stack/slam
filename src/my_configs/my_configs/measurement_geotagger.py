@@ -80,7 +80,7 @@ class MeasurementGeotagger(Node):
             with open(self.save_path, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(["X", "Y", "Z", "r", "g", "b"]) # Header
-        
+
     def print(self, msg, prio=False):
         if self.debugging:
             if prio:

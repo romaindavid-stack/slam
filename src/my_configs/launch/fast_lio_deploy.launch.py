@@ -185,7 +185,7 @@ def generate_launch_description():
             executable='measurement_geotagger',
             name='measurement_geotagger',
             output='screen',
-            parameters=[geotagger_config, use_sim_time_param] # Critical for sync during playback
+            parameters=[geotagger_config, use_sim_time_param], # Critical for sync during playback
             condition=IfCondition(run_slam),
         )
         entities.append(geotagger_node)
