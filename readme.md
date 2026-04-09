@@ -31,9 +31,11 @@ Arguments:
 source install/setup.bash
 
 ros2 launch my_configs fast_lio_deploy.launch.py
-ros2 launch my_configs fast_lio_deploy.launch.py record:=true
+ros2 launch my_configs fast_lio_deploy.launch.py record:=true slam:=false
+ros2 launch my_configs fast_lio_deploy.launch.py sensors:=false
 ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/ros2_data/recordings/keith_livox1"
 ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_07-14_23_44"
+ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_09-11_27_11/" rate:=0.3
 ```
 
 

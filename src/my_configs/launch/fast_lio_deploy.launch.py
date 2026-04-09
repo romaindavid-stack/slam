@@ -4,7 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription, LaunchDescriptionEntity
 from launch.actions import IncludeLaunchDescription, ExecuteProcess, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 import socket
@@ -71,12 +71,23 @@ def generate_launch_description():
     # Path to the bag you want to play back (only used if playback:=true)
     bag_file_arg = DeclareLaunchArgument('bag_file', default_value='')
     rate_arg = DeclareLaunchArgument('rate', default_value='1.0')
+    sensor_arg = DeclareLaunchArgument('sensors', default_value='true')
 
     # Shortcuts for conditions and parameters
     is_playback = LaunchConfiguration('playback')
     is_recording = LaunchConfiguration('record')
     play_rate = LaunchConfiguration('rate')
     run_slam = LaunchConfiguration('slam')
+    run_sensors = LaunchConfiguration('sensors')
+
+    run_sensor = IfCondition(
+        PythonExpression([
+            run_sensors, 
+            ' and not ', 
+            is_playback
+        ])
+    )
+
 
     # This ensures nodes use the bag's clock during playback
     use_sim_time_param: dict[str, LaunchConfiguration] = {'use_sim_time': is_playback}   
@@ -88,6 +99,7 @@ def generate_launch_description():
         bag_file_arg,
         rate_arg,
         slam_arg,
+        sensor_arg,
     ]
     is_laptop, is_jetson = set_working_mode()
 
@@ -133,7 +145,7 @@ def generate_launch_description():
                 "user_config_path": os.path.join(my_configs_dir, 'config', 'MID360_config.json'),
                 "xfer_format": 1, "publish_freq": 10.0, "frame_id": 'livox_frame'
             }],
-            condition=UnlessCondition(is_playback),
+            condition=run_sensor,
             output='screen'
         )
         entities.append(livox_driver_node)
@@ -143,7 +155,7 @@ def generate_launch_description():
             package='ublox_gps',
             executable='ublox_gps_node',
             parameters=[os.path.join(my_configs_dir, 'config', 'zed_f9p.yaml')],
-            condition=UnlessCondition(is_playback),
+            condition=run_sensor,
             output='screen'
         )
         entities.append(ublox_node)
@@ -152,7 +164,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 os.path.join(my_configs_dir, 'launch', 'ntrip_client_launch.py')
             ),
-            condition=UnlessCondition(is_playback)
+            condition=run_sensor
         )
         entities.append(ntrip_launch)
 
@@ -176,7 +188,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('keithley_dmm'), 'launch', 'keithley_yaml_launch.py')
             ),
-            condition=UnlessCondition(is_playback)
+            condition=run_sensor
         )
         entities.append(keithley_launch)
 

@@ -20,8 +20,8 @@
     mapping:
       # Covariance: How much 'noise' or error we expect from the sensors. 
       # Higher values mean we trust the sensor LESS.
-      acc_cov: 0.3  # 0.5                 # Accelerometer noise
-      gyr_cov: 0.3  # 0.5               # Gyroscope noise
+      acc_cov: 0.1  # 0.5                 # Accelerometer noise
+      gyr_cov: 0.1  # 0.5               # Gyroscope noise
       b_acc_cov: 0.0001            # Bias noise (drift over time)
       b_gyr_cov: 0.0001
       # Sensor Specs
@@ -38,8 +38,8 @@
 
     point_filter_num: 1
     max_iteration: 10  # 5               # Number of math attempts to solve position per frame
-    filter_size_surf: 0.5  # 0.5
-    filter_size_map: 0.5  # 0.5
+    filter_size_surf: 1.0  # 0.5
+    filter_size_map: 0.1  # 0.5
 
     publish:
       # What should be sent to the visualizer (RViz)?

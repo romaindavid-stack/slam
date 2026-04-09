@@ -1,4 +1,5 @@
 import csv
+from random import randint
 import time
 from typing import Literal
 
@@ -75,16 +76,15 @@ class MeasurementGeotagger(Node):
         self.print(f"Lever arm offset configured: {self.lever_arm}")
 
         # files
-        self.save_path = f'maps/markers_{time.strftime("%Y_%m_%d-%H_%M_%S")}.csv'
+        self.save_path = 'maps/markers.csv'  # f'maps/markers_{time.strftime("%Y_%m_%d-%H_%M_%S")}.csv'
         if self.save:
             with open(self.save_path, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(["X", "Y", "Z", "r", "g", "b"]) # Header
 
     def print(self, msg, prio=False):
-        if self.debugging:
-            if prio:
-                self.get_logger().info(str(msg))
+        if self.debugging or prio:
+            self.get_logger().info(str(msg))
 
     def get_timestamp(self, msg_header):
         return msg_header.stamp.sec + msg_header.stamp.nanosec * 1e-9
@@ -264,7 +264,11 @@ class MeasurementGeotagger(Node):
         marker.scale.z = 0.15
         
         # Smooth Color Gradient
-        r, g, b = self.get_color(meas['value'])
+        measurement = meas['value']
+        if not randint(0, 10):
+            self.print(measurement, prio=True)
+
+        r, g, b = self.get_color(measurement)
         marker.color.r = r
         marker.color.g = g
         marker.color.b = b
@@ -286,7 +290,7 @@ class MeasurementGeotagger(Node):
                     b,
                 ])
 
-        self.print("published", prio=True)
+        self.print("published")
 
     def rotate_vector(self, v, q):
         """Rotates vector v by quaternion q: v' = v + 2 * q_vec x (q_vec x v + q_w * v)"""

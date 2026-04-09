@@ -82,7 +82,7 @@ class LaserMapGrabber(Node):
         points = points.view(points.dtype[0]).reshape(-1, 3)
         
         if len(points) > 0:
-            points = specific_post_processing(points)
+            # points = specific_post_processing(points)
 
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(points)
