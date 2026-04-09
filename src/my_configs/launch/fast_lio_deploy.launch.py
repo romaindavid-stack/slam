@@ -10,24 +10,11 @@ from launch_ros.actions import Node
 import socket
 import time
 
-def generate_launch_description():
-    
-    # --- 0. ARGUMENTS & CONFIG ---
-    if not os.path.exists('bags'):
-        os.makedirs('bags')
 
-    record_bag_arg = DeclareLaunchArgument('record', default_value='false')
-    playback_arg = DeclareLaunchArgument('playback', default_value='false')
-    # Path to the bag you want to play back (only used if playback:=true)
-    bag_file_arg = DeclareLaunchArgument('bag_file', default_value='')
+testing_mode: bool = True
 
-    # Shortcuts for conditions and parameters
-    is_playback = LaunchConfiguration('playback')
-    is_recording = LaunchConfiguration('record')
-    # This ensures nodes use the bag's clock during playback
-    use_sim_time_param: dict[str, LaunchConfiguration] = {'use_sim_time': is_playback}   
 
-    testing_mode: bool = True
+def set_working_mode() -> tuple[bool, bool]:
     is_laptop: bool
     is_jetson: bool
 
@@ -42,20 +29,74 @@ def generate_launch_description():
     if not is_laptop and not is_jetson:
         print(f"ERROR! Couldnt resolve device type (laptop or jetson). Your hostname is {hostname}, change the main launch file so you are recognized as you need.")
         sys.exit(1)
+    return is_laptop, is_jetson
+
+
+def set_record_command(bag_name: str, is_laptop: bool, is_jetson: bool) -> list[str]:
+    # Base topics recorded in every situation
+    recorded_topics = [
+        'ros2', 'bag', 'record', '-o', bag_name,
+        '/ublox_gps_node/fix', 
+        '/Odometry'
+    ]
+
+    if is_jetson:
+        # Add raw sensor data usually only available on the Jetson
+        recorded_topics.extend([
+            '/livox/lidar',
+            '/livox/imu'
+        ])
+
+    if is_laptop:
+        # Add measurement data if the laptop is running the drivers
+        recorded_topics.extend([
+            '/keithley/measurement', 
+            '/keithley/geotagged_marker'
+        ])
+    
+    return recorded_topics
+
+
+
+
+def generate_launch_description():
+    
+    # --- 0. ARGUMENTS & CONFIG ---
+    if not os.path.exists('bags'):
+        os.makedirs('bags')
+
+    record_bag_arg = DeclareLaunchArgument('record', default_value='false')
+    playback_arg = DeclareLaunchArgument('playback', default_value='false')
+    slam_arg = DeclareLaunchArgument('slam', default_value='true')
+    # Path to the bag you want to play back (only used if playback:=true)
+    bag_file_arg = DeclareLaunchArgument('bag_file', default_value='')
+    rate_arg = DeclareLaunchArgument('rate', default_value='1.0')
+
+    # Shortcuts for conditions and parameters
+    is_playback = LaunchConfiguration('playback')
+    is_recording = LaunchConfiguration('record')
+    play_rate = LaunchConfiguration('rate')
+    run_slam = LaunchConfiguration('slam')
+
+    # This ensures nodes use the bag's clock during playback
+    use_sim_time_param: dict[str, LaunchConfiguration] = {'use_sim_time': is_playback}   
+
 
     entities: list[LaunchDescriptionEntity] = [
         record_bag_arg,
         playback_arg,
         bag_file_arg,
+        rate_arg,
+        slam_arg,
     ]
+    is_laptop, is_jetson = set_working_mode()
 
     # --- 1. RECORDER & PLAYER ---
     bag_name = "bags/slam_run_" + time.strftime("%Y_%m_%d-%H_%M_%S")
+    record_command = set_record_command(bag_name, is_laptop, is_jetson)
     bag_recorder = ExecuteProcess(
         condition=IfCondition(is_recording),
-        cmd=['ros2', 'bag', 'record', '-o', bag_name,
-             '/ublox_gps_node/fix', '/Odometry', '/livox/lidar',
-             '/livox/imu', '/keithley/measurement', '/keithley/geotagged_marker'],
+        cmd=record_command,
         output='screen'
     )
     entities.append(bag_recorder)
@@ -64,6 +105,7 @@ def generate_launch_description():
             'ros2 bag play ', 
             LaunchConfiguration('bag_file'), 
             ' --clock',
+            ' --rate ', play_rate,
             ' --remap /keithley/geotagged_marker:=/keithley/old_marker /Odometry:=/Odometry_old',
         ]],
         shell=True,
@@ -81,6 +123,7 @@ def generate_launch_description():
     geotagger_config = os.path.join(get_package_share_directory('my_configs'), 'config', 'geotagger.yaml')
     
     # --- 3. NODES ---
+
     if is_jetson:
         livox_driver_node = Node(
             package='livox_ros_driver2',
@@ -122,7 +165,8 @@ def generate_launch_description():
                 'config_file': fast_lio_config,
                 'use_sim_time': is_playback,
                 "rviz":"false",  # false  # true
-            }.items()
+            }.items(),
+            condition=IfCondition(run_slam),
         )
         entities.append(fast_lio_launch)
     
@@ -142,6 +186,7 @@ def generate_launch_description():
             name='measurement_geotagger',
             output='screen',
             parameters=[geotagger_config, use_sim_time_param] # Critical for sync during playback
+            condition=IfCondition(run_slam),
         )
         entities.append(geotagger_node)
 
@@ -151,6 +196,7 @@ def generate_launch_description():
             name='rviz2',
             arguments=['-d', rviz_config_dir],
             parameters=[{'use_sim_time': LaunchConfiguration('playback')}],
+            condition=IfCondition(run_slam),
             output='screen'
         )
         entities.append(rviz_node)
