@@ -1,4 +1,5 @@
 import csv
+import time
 from typing import Literal
 
 import rclpy
@@ -74,9 +75,9 @@ class MeasurementGeotagger(Node):
         self.print(f"Lever arm offset configured: {self.lever_arm}")
 
         # files
+        self.save_path = f'maps/markers_{time.strftime("%Y_%m_%d-%H_%M_%S")}.csv'
         if self.save:
-            save_path = "maps/markers.csv"
-            with open(save_path, 'w', newline='') as f:
+            with open(self.save_path, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(["X", "Y", "Z", "r", "g", "b"]) # Header
         
@@ -274,7 +275,7 @@ class MeasurementGeotagger(Node):
         self.marker_pub.publish(marker)
 
         if self.save:
-            with open("markers.csv", "a", newline="") as f:
+            with open(self.save_path, "a", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([
                     marker.pose.position.x, 
