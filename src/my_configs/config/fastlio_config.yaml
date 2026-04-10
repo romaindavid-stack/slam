@@ -1,0 +1,62 @@
+/**:
+  ros__parameters:
+    runtime_pos_log_enable: true
+
+    preprocess:
+      lidar_type: 1  # Data format: 1 for specific CustomMsg (Livox), 2 for standard PointCloud2               
+      scan_line: 4 # Number of laser lines (Mid-360 uses 4 internal lines)
+      blind: 0.5       # Blind zone: Ignore all points within 0.5m (prevents the robot from seeing itself)
+      timestamp_unit: 3      # Time measurement unit: 3 = Nanoseconds (Standard for ROS 2)
+      scan_rate: 10             # Frequency of the LiDAR (how many times it spins/scans per second)            
+
+    common:
+      # Define the names of the coordinate frames for the TF tree
+      lidar_frame: "livox_frame"
+      imu_frame: "livox_frame"    # Since Mid-360 has a built-in IMU, they share a frame
+      map_frame: "map"            # The global, non-moving world frame
+      base_frame: "livox_frame"   # The reference point for the robot's body
+      visualization_frame: "livox_frame"
+      time_sync_en: false       # Synchronization: Set to true only if using a specialized time protocol (PTP)
+         
+
+    mapping:
+      # Covariance: How much 'noise' or error we expect from the sensors. 
+      # Higher values mean we trust the sensor LESS.
+      acc_cov: 0.1  # 0.5                 # Accelerometer noise
+      gyr_cov: 0.1  # 0.5               # Gyroscope noise
+      b_acc_cov: 0.0001            # Bias noise (drift over time)
+      b_gyr_cov: 0.0001
+      # Sensor Specs
+      fov_degree: 360.0            # Full 360-degree horizontal vision
+      det_range: 100.0             # Maximum distance the LiDAR can 'see' (meters)
+      # Calibration
+      extrinsic_est_en: false      # Auto-calibrate sensor position? (False for stability)
+      # Physical offset between the IMU and LiDAR center (in meters)
+      extrinsic_T: [ -0.011, -0.02329, 0.04412 ]  
+      # Physical rotation between IMU and LiDAR (Identity matrix = no rotation)
+      extrinsic_R: [ 1.0, 0.0, 0.0,
+                     0.0, 1.0, 0.0,
+                     0.0, 0.0, 1.0 ]              
+
+    point_filter_num: 1
+    max_iteration: 10  # 5               # Number of math attempts to solve position per frame
+    filter_size_surf: 1.0  # 0.5
+    filter_size_map: 0.1  # 0.5
+
+    publish:
+      # What should be sent to the visualizer (RViz)?
+      map_en: true
+      path_en: true                # Show the line tracing where the robot walked
+      scan_publish_en: true        # Show the current points the LiDAR sees
+      dense_publish_en: false      # Save CPU by not showing every single tiny point
+      scan_bodyframe_pub_en: true
+
+    pcd_save_enable: true            # Save the 3D map as a .pcd file when finished
+    map_file_path: "/home/romain/slam/maps/"
+    interval: -1  
+
+    pcd_save:
+      # Map storage settings
+      pcd_save_enable: true            # Save the 3D map as a .pcd file when finished
+      pcd_save_path: "/home/romain/slam/maps/"
+      interval: -1                 # -1 means 'save everything into one file at the end'

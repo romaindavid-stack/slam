@@ -18,9 +18,8 @@ from scipy.spatial.transform import Slerp
 class MeasurementGeotagger(Node):
     def __init__(self):
         super().__init__('measurement_geotagger')
-        self.debugging = False  # False  # True
+        self.debugging = 0  # False  # True
 
-        self.print("\n\n\nmeasurement geotagger well and alive\n\n\n")
 
         # --- DECLARE PARAMETERS (With Defaults) ---
         self.declare_parameter('filter_start_sec', 0.0)
@@ -34,13 +33,14 @@ class MeasurementGeotagger(Node):
         # --- LOAD PARAMETERS ---
         self.start_window = self.get_parameter('filter_start_sec').value
         self.end_window = self.get_parameter('filter_end_sec').value
-        self.step: int = self.get_parameter('measurement_step').value
+        self.step = self.get_parameter('measurement_step').value
         self.min_volt = self.get_parameter('min_volt').value
         self.max_volt = self.get_parameter('max_volt').value
         self.lever_arm = np.array(self.get_parameter('lever_arm').value)
         self.save = self.get_parameter('save').value
 
 
+        self.print(f"\n\n\nmeasurement geotagger well and alive\nStarting measurements from second {self.start_window} to second {self.end_window}\n\n\n")
 
         # --- CONFIGURATION ---
         self.max_odom_buffer_size = 200
@@ -140,6 +140,8 @@ class MeasurementGeotagger(Node):
 
         while self.measurements_waiting_room:
             t_target = self.measurements_waiting_room[0]['time']
+            self.print(f"t_target: {t_target}")
+            self.print(f"odom buffer: {self.odom_buffer[0]['time']} to {self.odom_buffer[-1]['time']}")
             
             # 1. Check if the measurement is too old for our buffer
             if t_target < self.odom_buffer[0]['time']:
@@ -266,7 +268,7 @@ class MeasurementGeotagger(Node):
         # Smooth Color Gradient
         measurement = meas['value']
         if not randint(0, 10):
-            self.print(measurement, prio=True)
+            self.print(f"measurement value: {measurement}", prio=True)
 
         r, g, b = self.get_color(measurement)
         marker.color.r = r

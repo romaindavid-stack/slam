@@ -82,12 +82,9 @@ def generate_launch_description():
 
     run_sensor = IfCondition(
         PythonExpression([
-            run_sensors, 
-            ' and not ', 
-            is_playback
+            "'", run_sensors, "' == 'true' and '", is_playback, "' == 'false'"
         ])
     )
-
 
     # This ensures nodes use the bag's clock during playback
     use_sim_time_param: dict[str, LaunchConfiguration] = {'use_sim_time': is_playback}   
@@ -130,7 +127,7 @@ def generate_launch_description():
     # --- 2. PATHS ---
     my_configs_dir = get_package_share_directory('my_configs')
     fast_lio_dir = get_package_share_directory('fast_lio')
-    fast_lio_config = os.path.join(my_configs_dir, 'config', 'mid360.yaml')
+    fast_lio_config = os.path.join(my_configs_dir, 'config', 'mid360.yaml')  # 'mid360.yaml')
     rviz_config_dir = os.path.join(get_package_share_directory('my_configs'), 'rviz', 'geotagger.rviz')
     geotagger_config = os.path.join(get_package_share_directory('my_configs'), 'config', 'geotagger.yaml')
     
@@ -164,7 +161,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 os.path.join(my_configs_dir, 'launch', 'ntrip_client_launch.py')
             ),
-            condition=run_sensor
+            condition=run_sensor,
         )
         entities.append(ntrip_launch)
 
@@ -188,7 +185,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('keithley_dmm'), 'launch', 'keithley_yaml_launch.py')
             ),
-            condition=run_sensor
+            condition=run_sensor,
         )
         entities.append(keithley_launch)
 
