@@ -37,7 +37,7 @@ ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home
 ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_07-14_23_44"
 ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_09-11_27_11/" rate:=0.3
 ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_09-11_32_12/" sensors:=false
-ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_09-11_32_12/" long_stick:=true
+ros2 launch my_configs fast_lio_deploy.launch.py playback:=true bag_file:="/home/romain/slam/bags/slam_run_2026_04_09-11_32_12/" sensors:=false long_stick:=true rate:=4
 
 ```
 
