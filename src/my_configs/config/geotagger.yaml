@@ -5,11 +5,13 @@
     filter_end_sec: -1.0  # -1.0  # 101.0
     
     # Downsampling: 1 = Use every point | 10 = Use every 10th point
-    measurement_step: 5
+    measurement_step: 1
     
     # Voltage thresholds for color gradient (Green -> Red)
     min_volt: -0.5
     max_volt: -0.1  # -0.1
     # x: forward/backward, y: left/right, z: up/down
-    lever_arm: [0.3, 0.0, 1.7]  # [0.0, 0.0, 0.0]  # [0.14, 0.0, 1.2]  # [0.14, 0.0, 0.85]
+    lever_arm: [0.8, 0.0, 0.14]  # [0.8, 0.0, 0.14]  # [0.0, 0.0, -0.85]  # [0.0, 0.14, 0.85]  # [0.14, 0.0, 1.2]  # [0.3, 0.0, 1.7]  # [0.0, 0.0, 0.0]  # [0.14, 0.0, 0.85]
+    arm_extension: [0.6, 0.0, 0.15]  # [0.8, 0.0, 0.14]  # [0.8, 0.0, 0.14]  # [0.0, 0.0, -0.85]  # [0.0, 0.14, 0.85]  # [0.14, 0.0, 1.2]  # [0.3, 0.0, 1.7]  # [0.0, 0.0, 0.0]  # [0.14, 0.0, 0.85]
+
     save: false

@@ -72,6 +72,7 @@ def generate_launch_description():
     bag_file_arg = DeclareLaunchArgument('bag_file', default_value='')
     rate_arg = DeclareLaunchArgument('rate', default_value='1.0')
     sensor_arg = DeclareLaunchArgument('sensors', default_value='true')
+    long_stick = DeclareLaunchArgument('long_stick', default_value='false')
 
     # Shortcuts for conditions and parameters
     is_playback = LaunchConfiguration('playback')
@@ -79,6 +80,8 @@ def generate_launch_description():
     play_rate = LaunchConfiguration('rate')
     run_slam = LaunchConfiguration('slam')
     run_sensors = LaunchConfiguration('sensors')
+    is_long_stick = LaunchConfiguration('long_stick')
+
 
     run_sensor = IfCondition(
         PythonExpression([
@@ -97,6 +100,7 @@ def generate_launch_description():
         rate_arg,
         slam_arg,
         sensor_arg,
+        long_stick,
     ]
     is_laptop, is_jetson = set_working_mode()
 
@@ -194,7 +198,7 @@ def generate_launch_description():
             executable='measurement_geotagger',
             name='measurement_geotagger',
             output='screen',
-            parameters=[geotagger_config, use_sim_time_param], # Critical for sync during playback
+            parameters=[geotagger_config, use_sim_time_param, {'is_long_stick': is_long_stick}], # Critical for sync during playback
             condition=IfCondition(run_slam),
         )
         entities.append(geotagger_node)

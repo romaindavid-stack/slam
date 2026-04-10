@@ -28,19 +28,30 @@ class MeasurementGeotagger(Node):
         self.declare_parameter('min_volt', -0.5)
         self.declare_parameter('max_volt', 0.5)
         self.declare_parameter('save', False)
+        self.declare_parameter('is_long_stick', False)
         # LEVER ARM OFFSET (in meters)
         self.declare_parameter('lever_arm', [0.14, 0.0, 0.85])
+        self.declare_parameter('arm_extension', [0.14, 0.0, 0.85])
         # --- LOAD PARAMETERS ---
         self.start_window = self.get_parameter('filter_start_sec').value
         self.end_window = self.get_parameter('filter_end_sec').value
         self.step = self.get_parameter('measurement_step').value
         self.min_volt = self.get_parameter('min_volt').value
         self.max_volt = self.get_parameter('max_volt').value
-        self.lever_arm = np.array(self.get_parameter('lever_arm').value)
+        basic_lever_arm = np.array(self.get_parameter('lever_arm').value)
+        self.arm_extension = np.array(self.get_parameter('arm_extension').value)
         self.save = self.get_parameter('save').value
+        self.is_long_stick = self.get_parameter('is_long_stick').value
 
+        if self.is_long_stick:
+            self.lever_arm = basic_lever_arm+self.arm_extension
+        else:
+            self.lever_arm = basic_lever_arm
 
         self.print(f"\n\n\nmeasurement geotagger well and alive\nStarting measurements from second {self.start_window} to second {self.end_window}\n\n\n")
+
+        self.print(f"Geotagger Started. Gradient: Green -> Yellow -> Orange -> Red ({self.min_volt}V to {self.max_volt}V)")
+        self.print(f"Lever arm offset configured: {self.lever_arm}")
 
         # --- CONFIGURATION ---
         self.max_odom_buffer_size = 200
@@ -71,9 +82,6 @@ class MeasurementGeotagger(Node):
             10
         )
         self.marker_pub = self.create_publisher(Marker, '/keithley/geotagged_marker', 10)
-
-        self.print(f"Geotagger Started. Gradient: Green -> Yellow -> Orange -> Red ({self.min_volt}V to {self.max_volt}V)")
-        self.print(f"Lever arm offset configured: {self.lever_arm}")
 
         # files
         self.save_path = 'maps/markers.csv'  # f'maps/markers_{time.strftime("%Y_%m_%d-%H_%M_%S")}.csv'
@@ -241,7 +249,7 @@ class MeasurementGeotagger(Node):
             # Re-normalize
             norm = math.sqrt(sum(i*i for i in interp_q))
             interp_q = [i/norm for i in interp_q]
-
+        
         # --- ROTATING THE LEVER ARM ---
         rotated_offset = self.rotate_vector(self.lever_arm, interp_q)
         final_pos = interp_pos + rotated_offset

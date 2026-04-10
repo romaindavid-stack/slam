@@ -38,4 +38,4 @@
       path_en: true
       scan_bodyframe_pub_en: true
       scan_publish_en: true
-    runtime_pos_log_enable: true
+    runtime_pos_log_enable: false  # for solve time logs
